@@ -112,15 +112,15 @@ flowchart LR
 2. Create env and install dependencies:
 
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
-pip install -r ETL_Scripts/requirements.txt
+python3 -m pip install -r ETL_Scripts/requirements.txt
 ```
 
 3. Run the warehouse pipeline:
 
 ```bash
-python ETL_Scripts/run_pipeline.py \
+python3 ETL_Scripts/run_pipeline.py \
   --raw-dir data/raw \
   --db-path data/warehouse/olist.duckdb \
   --export-dir data/exports
@@ -129,7 +129,7 @@ python ETL_Scripts/run_pipeline.py \
 4. Validate warehouse integrity:
 
 ```bash
-python ETL_Scripts/validate_warehouse.py --db-path data/warehouse/olist.duckdb
+python3 ETL_Scripts/validate_warehouse.py --db-path data/warehouse/olist.duckdb
 ```
 
 5. Connect Power BI / Tableau to:

@@ -16,3 +16,6 @@ data/exports/*
 # Notebook and dashboard local outputs
 Dashboard/screenshots/*
 !Dashboard/screenshots/.gitkeep
+
+# Test temporary outputs
+tests/.tmp/

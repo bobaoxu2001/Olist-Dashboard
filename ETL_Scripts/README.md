@@ -10,13 +10,13 @@ This folder contains the pipeline that builds the Olist warehouse from raw CSV f
 Install dependencies:
 
 ```bash
-pip install -r ETL_Scripts/requirements.txt
+python3 -m pip install -r ETL_Scripts/requirements.txt
 ```
 
 ## Run full pipeline
 
 ```bash
-python ETL_Scripts/run_pipeline.py \
+python3 ETL_Scripts/run_pipeline.py \
   --raw-dir data/raw \
   --db-path data/warehouse/olist.duckdb \
   --export-dir data/exports
@@ -25,7 +25,7 @@ python ETL_Scripts/run_pipeline.py \
 ## Validate warehouse
 
 ```bash
-python ETL_Scripts/validate_warehouse.py --db-path data/warehouse/olist.duckdb
+python3 ETL_Scripts/validate_warehouse.py --db-path data/warehouse/olist.duckdb
 ```
 
 ## SQL model order

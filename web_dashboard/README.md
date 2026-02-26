@@ -18,7 +18,7 @@ The app reads from:
 ```bash
 python3 -m pip install -r requirements.txt
 python3 ETL_Scripts/run_pipeline.py --raw-dir data/raw --db-path data/warehouse/olist.duckdb --export-dir data/exports
-streamlit run web_dashboard/app.py
+python3 -m streamlit run web_dashboard/app.py
 ```
 
 ## Deploy to Streamlit Community Cloud

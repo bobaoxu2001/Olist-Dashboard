@@ -145,7 +145,7 @@ python3 ETL_Scripts/validate_warehouse.py --db-path data/warehouse/olist.duckdb
 
 ```bash
 python3 -m pip install -r requirements.txt
-streamlit run web_dashboard/app.py
+python3 -m streamlit run web_dashboard/app.py
 ```
 
 7. Deploy online:

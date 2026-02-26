@@ -11,10 +11,52 @@
     <header class="page-header">
       <h1>Olist E-commerce Online Dashboard</h1>
       <p>
-        Consumer Insights & Operations (Executive / Supply Chain / Customer
-        Satisfaction)
+        Advanced interactive analytics for Executive, Operations, and Customer
+        Satisfaction views
       </p>
+      <div class="header-badge">Data scope: Brazil (state-level analytics)</div>
     </header>
+
+    <section class="filter-panel">
+      <h2>Global Filters</h2>
+      <div class="filter-grid">
+        <label class="filter-item">
+          <span>Country</span>
+          <select id="filter-country">
+            <option value="Brazil" selected>Brazil</option>
+          </select>
+        </label>
+        <label class="filter-item">
+          <span>Date Granularity</span>
+          <select id="filter-grain">
+            <option value="day">Daily</option>
+            <option value="month" selected>Monthly</option>
+            <option value="year">Yearly</option>
+          </select>
+        </label>
+        <label class="filter-item">
+          <span>Start Date</span>
+          <input id="filter-start-date" type="date" />
+        </label>
+        <label class="filter-item">
+          <span>End Date</span>
+          <input id="filter-end-date" type="date" />
+        </label>
+        <label class="filter-item tall">
+          <span>States (multi-select)</span>
+          <select id="filter-states" multiple></select>
+        </label>
+        <label class="filter-item tall">
+          <span>Payment Types (multi-select)</span>
+          <select id="filter-payments" multiple></select>
+        </label>
+      </div>
+      <div class="filter-actions">
+        <button id="apply-filters-btn" class="primary-btn">Apply Filters</button>
+        <button id="reset-filters-btn" class="secondary-btn">Reset to Default</button>
+        <div id="filter-summary" class="filter-summary">Loading filters...</div>
+      </div>
+    </section>
 
     <nav class="tab-nav">
       <button class="tab-btn active" data-tab="exec-tab">Executive Summary</button>
@@ -42,8 +84,9 @@
             <div class="kpi-value" id="exec-kpi-yoy">-</div>
           </div>
         </div>
+        <div class="insight-card" id="exec-insight"></div>
         <div class="chart-grid two-col">
-          <div class="chart-card"><div id="exec-monthly-chart"></div></div>
+          <div class="chart-card"><div id="exec-trend-chart"></div></div>
           <div class="chart-card"><div id="exec-payment-chart"></div></div>
         </div>
         <div class="chart-card"><div id="exec-category-chart"></div></div>
@@ -64,11 +107,12 @@
             <div class="kpi-value" id="ops-kpi-freight">-</div>
           </div>
         </div>
+        <div class="insight-card" id="ops-insight"></div>
         <div class="chart-grid two-col">
           <div class="chart-card"><div id="ops-map-chart"></div></div>
           <div class="chart-card"><div id="ops-delay-chart"></div></div>
         </div>
-        <div class="chart-card"><div id="ops-monthly-chart"></div></div>
+        <div class="chart-card"><div id="ops-trend-chart"></div></div>
       </section>
 
       <section id="csat-tab" class="tab-panel">

@@ -181,6 +181,12 @@ python3 web_dashboard_static/generate_data.py \
   --output-path web_dashboard_static/data/dashboard_data.json
 ```
 
+The static dashboard supports advanced interactions:
+- Daily / Monthly / Yearly granularity switch,
+- Global date range filtering,
+- State and payment-type multi-select filters,
+- Dynamic KPI and insight recalculation across all tabs.
+
 ## Cloud Agent Environment
 
 This repo includes `.cursor/environment.json` so new cloud agents bootstrap with:

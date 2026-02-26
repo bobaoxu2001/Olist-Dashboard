@@ -1,4 +1,4 @@
-"""Build packaged JSON data for static online dashboard."""
+"""Build packaged JSON data for the interactive static dashboard."""
 
 from __future__ import annotations
 
@@ -12,80 +12,138 @@ import duckdb
 import pandas as pd
 
 
+BASE_CLEAN_ORDERS_CTE = """
+WITH clean_orders AS (
+    SELECT
+        f.order_id,
+        t.full_date AS purchase_date,
+        COALESCE(f.customer_state, 'UNKNOWN') AS customer_state,
+        COALESCE(f.main_payment_type, 'unknown') AS payment_type,
+        'Brazil' AS country,
+        f.gmv,
+        f.freight_value,
+        f.is_late_delivery,
+        f.delay_days,
+        f.delivery_days,
+        f.review_score
+    FROM mart.fact_orders f
+    JOIN mart.dim_time t
+      ON f.purchase_date_key = t.date_key
+    WHERE f.purchase_date_key IS NOT NULL
+      AND COALESCE(f.order_status, 'unknown') NOT IN ('canceled', 'unavailable')
+)
+"""
+
+
 QUERY_MAP = {
-    "exec_monthly": """
-        SELECT month_start, gmv, order_count, aov, yoy_order_growth_pct
-        FROM mart.vw_exec_summary_monthly
-        ORDER BY month_start
-    """,
-    "exec_payment_mix": """
-        SELECT payment_type, order_count, gmv, payment_value, order_share_pct
-        FROM mart.vw_exec_payment_mix
-    """,
-    "exec_category_perf": """
-        SELECT product_category, order_count, category_gmv, category_freight, contribution_margin_proxy, avg_item_price
-        FROM mart.vw_exec_category_performance
-        ORDER BY category_gmv DESC
-    """,
-    "ops_state_bottlenecks": """
-        SELECT customer_state, order_count, avg_delivery_days, avg_delay_days, on_time_rate, avg_freight_to_gmv_ratio, severe_delay_rate
-        FROM mart.vw_ops_state_bottlenecks
-    """,
-    "ops_monthly": """
-        SELECT month_start, order_count, avg_delivery_days, avg_delay_days, on_time_rate, avg_freight_to_gmv_ratio
-        FROM mart.vw_ops_monthly_logistics
-        ORDER BY month_start
-    """,
-    "state_geo_centroid": """
-        SELECT customer_state, geo_lat, geo_lng
+    "orders_base": (
+        BASE_CLEAN_ORDERS_CTE
+        + """
+        SELECT
+            purchase_date,
+            customer_state,
+            payment_type,
+            country,
+            COUNT(*) AS order_count,
+            SUM(gmv) AS gmv,
+            SUM(freight_value) AS freight_value,
+            SUM(CASE WHEN is_late_delivery = 1 THEN 1 ELSE 0 END) AS late_count,
+            SUM(CASE WHEN delay_days >= 5 THEN 1 ELSE 0 END) AS severe_delay_count,
+            SUM(COALESCE(delivery_days, 0)) AS delivery_days_sum,
+            SUM(CASE WHEN delivery_days IS NOT NULL THEN 1 ELSE 0 END) AS delivery_days_count,
+            SUM(COALESCE(delay_days, 0)) AS delay_days_sum,
+            SUM(CASE WHEN delay_days IS NOT NULL THEN 1 ELSE 0 END) AS delay_days_count,
+            SUM(CASE WHEN review_score IS NOT NULL THEN review_score ELSE 0 END) AS review_score_sum,
+            SUM(CASE WHEN review_score IS NOT NULL THEN 1 ELSE 0 END) AS review_count,
+            SUM(CASE WHEN review_score = 1 THEN 1 ELSE 0 END) AS one_star_count,
+            SUM(CASE WHEN review_score <= 2 AND review_score IS NOT NULL THEN 1 ELSE 0 END) AS low_score_count
+        FROM clean_orders
+        GROUP BY purchase_date, customer_state, payment_type, country
+        ORDER BY purchase_date, customer_state, payment_type
+        """
+    ),
+    "category_base": (
+        BASE_CLEAN_ORDERS_CTE
+        + """
+        SELECT
+            co.purchase_date,
+            co.customer_state,
+            co.payment_type,
+            co.country,
+            COALESCE(foi.product_category, 'unknown') AS product_category,
+            COUNT(*) AS item_count,
+            COUNT(DISTINCT foi.order_id) AS order_count,
+            SUM(COALESCE(foi.item_price, 0)) AS category_gmv,
+            SUM(COALESCE(foi.item_freight_value, 0)) AS category_freight,
+            SUM(COALESCE(foi.item_contribution_margin_proxy, 0)) AS contribution_margin_proxy
+        FROM mart.fact_order_items foi
+        JOIN clean_orders co
+          ON foi.order_id = co.order_id
+        GROUP BY
+            co.purchase_date,
+            co.customer_state,
+            co.payment_type,
+            co.country,
+            COALESCE(foi.product_category, 'unknown')
+        ORDER BY co.purchase_date, co.customer_state, co.payment_type
+        """
+    ),
+    "delay_bucket_base": (
+        BASE_CLEAN_ORDERS_CTE
+        + """
+        SELECT
+            purchase_date,
+            customer_state,
+            payment_type,
+            country,
+            CASE
+                WHEN delay_days IS NULL THEN 'unknown'
+                WHEN delay_days <= 0 THEN 'on_time_or_early'
+                WHEN delay_days BETWEEN 1 AND 2 THEN 'late_1_2_days'
+                WHEN delay_days BETWEEN 3 AND 5 THEN 'late_3_5_days'
+                ELSE 'late_over_5_days'
+            END AS delay_bucket,
+            COUNT(*) AS order_count,
+            SUM(CASE WHEN review_score IS NOT NULL THEN review_score ELSE 0 END) AS review_score_sum,
+            SUM(CASE WHEN review_score IS NOT NULL THEN 1 ELSE 0 END) AS review_count,
+            SUM(CASE WHEN review_score = 1 THEN 1 ELSE 0 END) AS one_star_count,
+            SUM(CASE WHEN review_score <= 2 AND review_score IS NOT NULL THEN 1 ELSE 0 END) AS low_score_count
+        FROM clean_orders
+        GROUP BY purchase_date, customer_state, payment_type, country, delay_bucket
+        ORDER BY purchase_date, customer_state, payment_type
+        """
+    ),
+    "review_score_base": (
+        BASE_CLEAN_ORDERS_CTE
+        + """
+        SELECT
+            purchase_date,
+            customer_state,
+            payment_type,
+            country,
+            review_score,
+            COUNT(*) AS review_count
+        FROM clean_orders
+        WHERE review_score IS NOT NULL
+        GROUP BY purchase_date, customer_state, payment_type, country, review_score
+        ORDER BY purchase_date, customer_state, payment_type, review_score
+        """
+    ),
+    "state_geo": """
+        SELECT
+            customer_state,
+            'Brazil' AS country,
+            geo_lat,
+            geo_lng
         FROM mart.vw_state_geo_centroid
-    """,
-    "csat_delay_impact": """
-        SELECT delay_bucket, review_count, avg_review_score, one_star_rate, low_score_rate
-        FROM mart.vw_csat_delay_impact
-    """,
-    "csat_state_payment": """
-        SELECT customer_state, payment_type, order_count, avg_delay_days, avg_review_score, low_score_rate
-        FROM mart.vw_csat_state_payment_driver
-    """,
-    "review_distribution": """
-        SELECT review_score, review_count
-        FROM mart.vw_review_distribution
-    """,
-    "csat_kpis": """
-        SELECT avg_review_score, one_star_rate, low_score_rate
-        FROM mart.vw_csat_kpis
-    """,
-    "exec_kpis": """
-        WITH latest_month AS (
-            SELECT yoy_order_growth_pct
-            FROM mart.vw_exec_summary_monthly
-            WHERE yoy_order_growth_pct IS NOT NULL
-            ORDER BY month_start DESC
-            LIMIT 1
-        )
-        SELECT
-            SUM(gmv) AS total_gmv,
-            COUNT(*) AS total_orders,
-            SUM(gmv) / NULLIF(COUNT(*), 0) AS aov,
-            (SELECT yoy_order_growth_pct FROM latest_month) AS latest_yoy_order_growth_pct
-        FROM mart.fact_orders
-        WHERE COALESCE(order_status, 'unknown') NOT IN ('canceled', 'unavailable')
-    """,
-    "ops_kpis": """
-        SELECT
-            AVG(delivery_days) AS avg_delivery_days,
-            1 - AVG(CASE WHEN is_late_delivery = 1 THEN 1.0 ELSE 0.0 END) AS on_time_rate,
-            AVG(freight_to_gmv_ratio) AS avg_freight_to_gmv_ratio
-        FROM mart.fact_orders
-        WHERE delivery_days IS NOT NULL
+        ORDER BY customer_state
     """,
 }
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Generate JSON package for static dashboard."
+        description="Generate JSON package for interactive static dashboard."
     )
     parser.add_argument(
         "--db-path",
@@ -102,11 +160,34 @@ def parse_args() -> argparse.Namespace:
 
 def dataframe_to_records(df: pd.DataFrame) -> List[dict]:
     normalized = df.copy()
-    for col in normalized.columns:
-        if pd.api.types.is_datetime64_any_dtype(normalized[col]):
-            normalized[col] = normalized[col].dt.strftime("%Y-%m-%d")
-    # Use pandas JSON serializer so NaN/NaT become JSON null.
+    for col_name in normalized.columns:
+        if pd.api.types.is_datetime64_any_dtype(normalized[col_name]):
+            normalized[col_name] = normalized[col_name].dt.strftime("%Y-%m-%d")
+        elif pd.api.types.is_float_dtype(normalized[col_name]):
+            normalized[col_name] = normalized[col_name].round(4)
     return json.loads(normalized.to_json(orient="records", date_format="iso"))
+
+
+def build_meta(orders_base_records: List[dict]) -> Dict[str, object]:
+    if not orders_base_records:
+        return {
+            "countries": ["Brazil"],
+            "min_date": None,
+            "max_date": None,
+            "states": [],
+            "payment_types": [],
+        }
+
+    dates = sorted({str(row["purchase_date"])[:10] for row in orders_base_records})
+    states = sorted({row["customer_state"] for row in orders_base_records})
+    payment_types = sorted({row["payment_type"] for row in orders_base_records})
+    return {
+        "countries": ["Brazil"],
+        "min_date": dates[0],
+        "max_date": dates[-1],
+        "states": states,
+        "payment_types": payment_types,
+    }
 
 
 def main() -> None:
@@ -122,9 +203,12 @@ def main() -> None:
     payload: Dict[str, object] = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
     }
+
     with duckdb.connect(str(db_path)) as conn:
         for name, query in QUERY_MAP.items():
             payload[name] = dataframe_to_records(conn.execute(query).df())
+
+    payload["meta"] = build_meta(payload["orders_base"])
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8") as f:

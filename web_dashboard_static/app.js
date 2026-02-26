@@ -422,7 +422,6 @@ function aggregateCategory(rows) {
         category_freight: 0,
         contribution_margin_proxy: 0,
         weight_g_sum: 0,
-        volume_cm3_sum: 0,
         review_score_sum: 0,
         review_count: 0,
       });
@@ -434,7 +433,6 @@ function aggregateCategory(rows) {
     acc.category_freight += toNumber(row.category_freight);
     acc.contribution_margin_proxy += toNumber(row.contribution_margin_proxy);
     acc.weight_g_sum += toNumber(row.weight_g_sum);
-    acc.volume_cm3_sum += toNumber(row.volume_cm3_sum);
     acc.review_score_sum += toNumber(row.review_score_sum);
     acc.review_count += toNumber(row.review_count);
   });
@@ -443,7 +441,6 @@ function aggregateCategory(rows) {
       ...row,
       avg_item_price: safeDiv(row.category_gmv, row.item_count),
       avg_weight_g: safeDiv(row.weight_g_sum, row.item_count),
-      avg_volume_cm3: safeDiv(row.volume_cm3_sum, row.item_count),
       avg_review_score: safeDiv(row.review_score_sum, row.review_count),
     }))
     .sort((a, b) => b.category_gmv - a.category_gmv);

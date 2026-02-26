@@ -185,6 +185,9 @@ The static dashboard supports advanced interactions:
 - Daily / Monthly / Yearly granularity switch,
 - Global date range filtering,
 - State and payment-type multi-select filters,
+- Top/Bottom N controls for ranking charts,
+- Storyline shortcut buttons for guided demos,
+- Drilldown tables from category/state/heatmap clicks,
 - Dynamic KPI and insight recalculation across all tabs.
 
 ## Cloud Agent Environment

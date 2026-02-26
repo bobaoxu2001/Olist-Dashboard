@@ -72,7 +72,6 @@ QUERY_MAP = {
         SELECT
             co.purchase_date,
             co.customer_state,
-            co.seller_state,
             co.payment_type,
             co.country,
             COALESCE(foi.product_category, 'unknown') AS product_category,
@@ -82,7 +81,6 @@ QUERY_MAP = {
             SUM(COALESCE(foi.item_freight_value, 0)) AS category_freight,
             SUM(COALESCE(foi.item_contribution_margin_proxy, 0)) AS contribution_margin_proxy,
             SUM(COALESCE(dp.product_weight_g, 0)) AS weight_g_sum,
-            SUM(COALESCE(dp.product_volume_cm3, 0)) AS volume_cm3_sum,
             SUM(CASE WHEN co.review_score IS NOT NULL THEN co.review_score ELSE 0 END) AS review_score_sum,
             SUM(CASE WHEN co.review_score IS NOT NULL THEN 1 ELSE 0 END) AS review_count
         FROM mart.fact_order_items foi
@@ -93,11 +91,10 @@ QUERY_MAP = {
         GROUP BY
             co.purchase_date,
             co.customer_state,
-            co.seller_state,
             co.payment_type,
             co.country,
             COALESCE(foi.product_category, 'unknown')
-        ORDER BY co.purchase_date, co.customer_state, co.seller_state, co.payment_type
+        ORDER BY co.purchase_date, co.customer_state, co.payment_type
         """
     ),
     "delay_bucket_base": (
@@ -106,7 +103,6 @@ QUERY_MAP = {
         SELECT
             purchase_date,
             customer_state,
-            seller_state,
             payment_type,
             country,
             CASE
@@ -122,8 +118,8 @@ QUERY_MAP = {
             SUM(CASE WHEN review_score = 1 THEN 1 ELSE 0 END) AS one_star_count,
             SUM(CASE WHEN review_score <= 2 AND review_score IS NOT NULL THEN 1 ELSE 0 END) AS low_score_count
         FROM clean_orders
-        GROUP BY purchase_date, customer_state, seller_state, payment_type, country, delay_bucket
-        ORDER BY purchase_date, customer_state, seller_state, payment_type
+        GROUP BY purchase_date, customer_state, payment_type, country, delay_bucket
+        ORDER BY purchase_date, customer_state, payment_type
         """
     ),
     "review_score_base": (
@@ -132,15 +128,14 @@ QUERY_MAP = {
         SELECT
             purchase_date,
             customer_state,
-            seller_state,
             payment_type,
             country,
             review_score,
             COUNT(*) AS review_count
         FROM clean_orders
         WHERE review_score IS NOT NULL
-        GROUP BY purchase_date, customer_state, seller_state, payment_type, country, review_score
-        ORDER BY purchase_date, customer_state, seller_state, payment_type, review_score
+        GROUP BY purchase_date, customer_state, payment_type, country, review_score
+        ORDER BY purchase_date, customer_state, payment_type, review_score
         """
     ),
     "order_detail_base": (
@@ -176,6 +171,9 @@ QUERY_MAP = {
         LEFT JOIN order_top_category otc
           ON co.order_id = otc.order_id
          AND otc.rn = 1
+        WHERE co.delay_days >= 5
+           OR COALESCE(co.review_score, 5) <= 2
+           OR MOD(HASH(co.order_id), 100) < 8
         ORDER BY co.purchase_date, co.order_id
         """
     ),

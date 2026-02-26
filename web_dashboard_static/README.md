@@ -8,8 +8,14 @@ This dashboard is a static website that can be opened directly from a CDN link.
 - Date range filter: start/end date
 - State multi-select filter
 - Payment type multi-select filter
+- Top/Bottom N controls for category and state ranking charts
+- Storyline shortcut buttons for guided demo flow
 - Cross-tab synchronized filters (Executive / Ops / CSAT update together)
 - KPI cards + dynamic insight cards recomputed per filter scope
+- Chart click drilldowns:
+  - Category -> state detail table
+  - State -> category detail table
+  - State x payment heatmap -> order-level risk detail table
 
 ## Why this exists
 

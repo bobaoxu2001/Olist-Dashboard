@@ -50,11 +50,40 @@
           <span>Payment Types (multi-select)</span>
           <select id="filter-payments" multiple></select>
         </label>
+        <label class="filter-item">
+          <span>Category Ranking</span>
+          <select id="exec-rank-mode">
+            <option value="top" selected>Top</option>
+            <option value="bottom">Bottom</option>
+          </select>
+        </label>
+        <label class="filter-item">
+          <span>Category N</span>
+          <input id="exec-top-n" type="number" min="3" max="30" value="12" />
+        </label>
+        <label class="filter-item">
+          <span>State Ranking</span>
+          <select id="ops-rank-mode">
+            <option value="top" selected>Top</option>
+            <option value="bottom">Bottom</option>
+          </select>
+        </label>
+        <label class="filter-item">
+          <span>State N</span>
+          <input id="ops-top-n" type="number" min="3" max="30" value="12" />
+        </label>
       </div>
       <div class="filter-actions">
         <button id="apply-filters-btn" class="primary-btn">Apply Filters</button>
         <button id="reset-filters-btn" class="secondary-btn">Reset to Default</button>
         <div id="filter-summary" class="filter-summary">Loading filters...</div>
+      </div>
+      <div class="storyline-panel">
+        <span class="storyline-label">Storyline shortcuts:</span>
+        <button id="story-exec-btn" class="secondary-btn">1) Growth Overview</button>
+        <button id="story-ops-btn" class="secondary-btn">2) Supply Chain Bottleneck</button>
+        <button id="story-csat-btn" class="secondary-btn">3) Delay to CSAT Impact</button>
+        <button id="story-reset-btn" class="secondary-btn">Reset Storyline</button>
       </div>
     </section>
 
@@ -90,6 +119,13 @@
           <div class="chart-card"><div id="exec-payment-chart"></div></div>
         </div>
         <div class="chart-card"><div id="exec-category-chart"></div></div>
+        <div class="detail-card">
+          <h3>Category Drill-down by Customer State</h3>
+          <p id="exec-selected-category" class="detail-subtitle">
+            Click a category bar to inspect state-level detail.
+          </p>
+          <div id="exec-drilldown-table"></div>
+        </div>
       </section>
 
       <section id="ops-tab" class="tab-panel">
@@ -113,6 +149,13 @@
           <div class="chart-card"><div id="ops-delay-chart"></div></div>
         </div>
         <div class="chart-card"><div id="ops-trend-chart"></div></div>
+        <div class="detail-card">
+          <h3>State Drill-down by Product Category</h3>
+          <p id="ops-selected-state" class="detail-subtitle">
+            Click a state on the bar chart or map to inspect category detail.
+          </p>
+          <div id="ops-drilldown-table"></div>
+        </div>
       </section>
 
       <section id="csat-tab" class="tab-panel">
@@ -136,6 +179,13 @@
         </div>
         <div class="chart-card"><div id="csat-heatmap-chart"></div></div>
         <div class="insight-card" id="csat-insight"></div>
+        <div class="detail-card">
+          <h3>CSAT Risk Detail (State × Payment)</h3>
+          <p id="csat-selected-cell" class="detail-subtitle">
+            Click the heatmap to inspect selected state/payment risk detail.
+          </p>
+          <div id="csat-drilldown-table"></div>
+        </div>
       </section>
     </main>
 

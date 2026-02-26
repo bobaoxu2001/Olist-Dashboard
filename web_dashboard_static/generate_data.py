@@ -18,10 +18,12 @@ WITH clean_orders AS (
         f.order_id,
         t.full_date AS purchase_date,
         COALESCE(f.customer_state, 'UNKNOWN') AS customer_state,
+        COALESCE(f.primary_seller_state, 'UNKNOWN') AS seller_state,
         COALESCE(f.main_payment_type, 'unknown') AS payment_type,
         'Brazil' AS country,
         f.gmv,
         f.freight_value,
+        COALESCE(f.payment_installments, 0) AS payment_installments,
         f.is_late_delivery,
         f.delay_days,
         f.delivery_days,
@@ -42,11 +44,13 @@ QUERY_MAP = {
         SELECT
             purchase_date,
             customer_state,
+            seller_state,
             payment_type,
             country,
             COUNT(*) AS order_count,
             SUM(gmv) AS gmv,
             SUM(freight_value) AS freight_value,
+            SUM(payment_installments) AS payment_installments_sum,
             SUM(CASE WHEN is_late_delivery = 1 THEN 1 ELSE 0 END) AS late_count,
             SUM(CASE WHEN delay_days >= 5 THEN 1 ELSE 0 END) AS severe_delay_count,
             SUM(COALESCE(delivery_days, 0)) AS delivery_days_sum,
@@ -58,8 +62,8 @@ QUERY_MAP = {
             SUM(CASE WHEN review_score = 1 THEN 1 ELSE 0 END) AS one_star_count,
             SUM(CASE WHEN review_score <= 2 AND review_score IS NOT NULL THEN 1 ELSE 0 END) AS low_score_count
         FROM clean_orders
-        GROUP BY purchase_date, customer_state, payment_type, country
-        ORDER BY purchase_date, customer_state, payment_type
+        GROUP BY purchase_date, customer_state, seller_state, payment_type, country
+        ORDER BY purchase_date, customer_state, seller_state, payment_type
         """
     ),
     "category_base": (
@@ -68,6 +72,7 @@ QUERY_MAP = {
         SELECT
             co.purchase_date,
             co.customer_state,
+            co.seller_state,
             co.payment_type,
             co.country,
             COALESCE(foi.product_category, 'unknown') AS product_category,
@@ -75,17 +80,24 @@ QUERY_MAP = {
             COUNT(DISTINCT foi.order_id) AS order_count,
             SUM(COALESCE(foi.item_price, 0)) AS category_gmv,
             SUM(COALESCE(foi.item_freight_value, 0)) AS category_freight,
-            SUM(COALESCE(foi.item_contribution_margin_proxy, 0)) AS contribution_margin_proxy
+            SUM(COALESCE(foi.item_contribution_margin_proxy, 0)) AS contribution_margin_proxy,
+            SUM(COALESCE(dp.product_weight_g, 0)) AS weight_g_sum,
+            SUM(COALESCE(dp.product_volume_cm3, 0)) AS volume_cm3_sum,
+            SUM(CASE WHEN co.review_score IS NOT NULL THEN co.review_score ELSE 0 END) AS review_score_sum,
+            SUM(CASE WHEN co.review_score IS NOT NULL THEN 1 ELSE 0 END) AS review_count
         FROM mart.fact_order_items foi
         JOIN clean_orders co
           ON foi.order_id = co.order_id
+        LEFT JOIN mart.dim_product dp
+          ON foi.product_sk = dp.product_sk
         GROUP BY
             co.purchase_date,
             co.customer_state,
+            co.seller_state,
             co.payment_type,
             co.country,
             COALESCE(foi.product_category, 'unknown')
-        ORDER BY co.purchase_date, co.customer_state, co.payment_type
+        ORDER BY co.purchase_date, co.customer_state, co.seller_state, co.payment_type
         """
     ),
     "delay_bucket_base": (
@@ -94,6 +106,7 @@ QUERY_MAP = {
         SELECT
             purchase_date,
             customer_state,
+            seller_state,
             payment_type,
             country,
             CASE
@@ -109,8 +122,8 @@ QUERY_MAP = {
             SUM(CASE WHEN review_score = 1 THEN 1 ELSE 0 END) AS one_star_count,
             SUM(CASE WHEN review_score <= 2 AND review_score IS NOT NULL THEN 1 ELSE 0 END) AS low_score_count
         FROM clean_orders
-        GROUP BY purchase_date, customer_state, payment_type, country, delay_bucket
-        ORDER BY purchase_date, customer_state, payment_type
+        GROUP BY purchase_date, customer_state, seller_state, payment_type, country, delay_bucket
+        ORDER BY purchase_date, customer_state, seller_state, payment_type
         """
     ),
     "review_score_base": (
@@ -119,14 +132,51 @@ QUERY_MAP = {
         SELECT
             purchase_date,
             customer_state,
+            seller_state,
             payment_type,
             country,
             review_score,
             COUNT(*) AS review_count
         FROM clean_orders
         WHERE review_score IS NOT NULL
-        GROUP BY purchase_date, customer_state, payment_type, country, review_score
-        ORDER BY purchase_date, customer_state, payment_type, review_score
+        GROUP BY purchase_date, customer_state, seller_state, payment_type, country, review_score
+        ORDER BY purchase_date, customer_state, seller_state, payment_type, review_score
+        """
+    ),
+    "order_detail_base": (
+        BASE_CLEAN_ORDERS_CTE
+        + """
+        , order_top_category AS (
+            SELECT
+                oi.order_id,
+                COALESCE(oi.product_category, 'unknown') AS top_product_category,
+                SUM(COALESCE(oi.item_price, 0)) AS category_gmv,
+                ROW_NUMBER() OVER (
+                    PARTITION BY oi.order_id
+                    ORDER BY SUM(COALESCE(oi.item_price, 0)) DESC, COALESCE(oi.product_category, 'unknown')
+                ) AS rn
+            FROM mart.fact_order_items oi
+            GROUP BY oi.order_id, COALESCE(oi.product_category, 'unknown')
+        )
+        SELECT
+            co.order_id,
+            co.purchase_date,
+            co.customer_state,
+            co.seller_state,
+            co.payment_type,
+            co.country,
+            co.gmv,
+            co.freight_value,
+            co.payment_installments,
+            co.delivery_days,
+            co.delay_days,
+            co.review_score,
+            COALESCE(otc.top_product_category, 'unknown') AS top_product_category
+        FROM clean_orders co
+        LEFT JOIN order_top_category otc
+          ON co.order_id = otc.order_id
+         AND otc.rn = 1
+        ORDER BY co.purchase_date, co.order_id
         """
     ),
     "state_geo": """
@@ -175,17 +225,22 @@ def build_meta(orders_base_records: List[dict]) -> Dict[str, object]:
             "min_date": None,
             "max_date": None,
             "states": [],
+            "seller_states": [],
+            "categories": [],
             "payment_types": [],
         }
 
     dates = sorted({str(row["purchase_date"])[:10] for row in orders_base_records})
     states = sorted({row["customer_state"] for row in orders_base_records})
+    seller_states = sorted({row["seller_state"] for row in orders_base_records})
     payment_types = sorted({row["payment_type"] for row in orders_base_records})
     return {
         "countries": ["Brazil"],
         "min_date": dates[0],
         "max_date": dates[-1],
         "states": states,
+        "seller_states": seller_states,
+        "categories": [],
         "payment_types": payment_types,
     }
 
@@ -209,6 +264,9 @@ def main() -> None:
             payload[name] = dataframe_to_records(conn.execute(query).df())
 
     payload["meta"] = build_meta(payload["orders_base"])
+    payload["meta"]["categories"] = sorted(
+        {row["product_category"] for row in payload.get("category_base", [])}
+    )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8") as f:

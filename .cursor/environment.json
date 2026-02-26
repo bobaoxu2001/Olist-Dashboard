@@ -1,0 +1,5 @@
+{
+  "name": "Olist Analytics Agent Environment",
+  "install": "python3 -m pip install --user --upgrade pip && python3 -m pip install --user --upgrade duckdb pandas pyarrow kaggle",
+  "start": "python3 --version && python3 -m pip --version && echo 'Cloud agent environment ready: duckdb/pandas/pyarrow/kaggle'"
+}

@@ -136,6 +136,16 @@ python3 ETL_Scripts/validate_warehouse.py --db-path data/warehouse/olist.duckdb
 - `data/warehouse/olist.duckdb`, or
 - exported mart files under `data/exports/`.
 
+## Cloud Agent Environment
+
+This repo includes `.cursor/environment.json` so new cloud agents bootstrap with:
+- `duckdb`
+- `pandas`
+- `pyarrow`
+- `kaggle`
+
+That means `ETL_Scripts/run_pipeline.py` and `ETL_Scripts/validate_warehouse.py` can run without extra package setup on new agents.
+
 ## If You Need More Data Scale
 
 See `docs/scale_up_plan.md` for real data extensions:

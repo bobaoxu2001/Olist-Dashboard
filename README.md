@@ -167,6 +167,12 @@ If your network shows `source IP address not allowed` for Streamlit Cloud, use t
 https://cdn.jsdelivr.net/gh/bobaoxu2001/Olist-Dashboard@main/web_dashboard_static/index.html
 ```
 
+If cached `@main` is stale, switch to commit-pinned URL:
+
+```text
+https://cdn.jsdelivr.net/gh/bobaoxu2001/Olist-Dashboard@<commit_sha>/web_dashboard_static/index.html
+```
+
 To refresh with latest warehouse metrics:
 
 ```bash

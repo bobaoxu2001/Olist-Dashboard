@@ -32,3 +32,9 @@ https://cdn.jsdelivr.net/gh/bobaoxu2001/Olist-Dashboard@main/web_dashboard_stati
 ```
 
 This serves the dashboard directly from jsDelivr using your GitHub repo.
+
+If jsDelivr caches an older `@main`, use commit-pinned URL format:
+
+```text
+https://cdn.jsdelivr.net/gh/bobaoxu2001/Olist-Dashboard@<commit_sha>/web_dashboard_static/index.html
+```

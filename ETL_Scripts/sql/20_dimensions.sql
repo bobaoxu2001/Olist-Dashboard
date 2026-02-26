@@ -40,7 +40,8 @@ WHERE p.product_id IS NOT NULL;
 
 CREATE OR REPLACE TABLE mart.dim_review AS
 SELECT
-    ROW_NUMBER() OVER (ORDER BY r.review_id) AS review_sk,
+    ROW_NUMBER() OVER (ORDER BY r.order_id) AS review_sk,
+    r.order_id,
     r.review_id,
     r.review_score,
     r.review_comment_title,
@@ -48,7 +49,7 @@ SELECT
     LENGTH(COALESCE(r.review_comment_message, '')) AS review_message_length,
     CASE WHEN COALESCE(r.review_score, 0) <= 2 THEN 1 ELSE 0 END AS is_low_score
 FROM stg.order_reviews_latest r
-WHERE r.review_id IS NOT NULL;
+WHERE r.order_id IS NOT NULL;
 
 CREATE OR REPLACE TABLE mart.dim_seller AS
 SELECT

@@ -44,6 +44,7 @@ SELECT
     dc.customer_sk,
     ds.seller_sk AS primary_seller_sk,
     dr.review_sk,
+    b.review_id,
     CAST(STRFTIME(CAST(b.order_purchase_ts AS DATE), '%Y%m%d') AS INTEGER) AS purchase_date_key,
     CAST(STRFTIME(CAST(b.order_approved_ts AS DATE), '%Y%m%d') AS INTEGER) AS approved_date_key,
     CAST(STRFTIME(CAST(b.order_delivered_customer_ts AS DATE), '%Y%m%d') AS INTEGER) AS delivered_date_key,
@@ -109,7 +110,7 @@ LEFT JOIN mart.dim_customer dc
 LEFT JOIN mart.dim_seller ds
     ON b.primary_seller_id = ds.seller_id
 LEFT JOIN mart.dim_review dr
-    ON b.review_id = dr.review_id
+    ON b.order_id = dr.order_id
 WHERE b.order_id IS NOT NULL;
 
 CREATE OR REPLACE TABLE mart.fact_order_items AS

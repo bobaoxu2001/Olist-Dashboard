@@ -105,8 +105,8 @@ def dataframe_to_records(df: pd.DataFrame) -> List[dict]:
     for col in normalized.columns:
         if pd.api.types.is_datetime64_any_dtype(normalized[col]):
             normalized[col] = normalized[col].dt.strftime("%Y-%m-%d")
-    normalized = normalized.where(pd.notnull(normalized), None)
-    return normalized.to_dict(orient="records")
+    # Use pandas JSON serializer so NaN/NaT become JSON null.
+    return json.loads(normalized.to_json(orient="records", date_format="iso"))
 
 
 def main() -> None:
@@ -128,7 +128,7 @@ def main() -> None:
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, separators=(",", ":"))
+        json.dump(payload, f, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
 
     print(f"[done] wrote dashboard data package: {output_path}")
 

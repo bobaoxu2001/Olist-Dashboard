@@ -11,7 +11,7 @@ This project demonstrates end-to-end analytics delivery:
 - multi-source data integration (9 CSV files),
 - warehouse modeling (star schema),
 - ETL pipeline implementation,
-- executive dashboard design (Power BI / Tableau),
+- executive dashboard design (Power BI / Tableau / Streamlit Web),
 - and data quality validation.
 
 ## Why This Project Matters
@@ -32,7 +32,7 @@ flowchart LR
     A[Kaggle Raw CSVs] --> B[raw schema]
     B --> C[stg schema]
     C --> D[mart schema - star model]
-    D --> E[Power BI / Tableau]
+    D --> E[Power BI / Tableau / Streamlit]
     D --> F[Executive + Ops + CSAT KPIs]
 ```
 
@@ -98,9 +98,14 @@ flowchart LR
 │   ├── tableau_build_guide.md
 │   ├── mockup_layout.md
 │   └── screenshots/
+├── web_dashboard/
+│   ├── app.py
+│   ├── README.md
+│   └── requirements.txt
 ├── docs/
 │   ├── interview_talk_track.md
 │   └── scale_up_plan.md
+├── requirements.txt
 └── tests/
     ├── run_smoke_test.py
     └── fixtures/olist_sample_raw/
@@ -135,6 +140,16 @@ python3 ETL_Scripts/validate_warehouse.py --db-path data/warehouse/olist.duckdb
 5. Connect Power BI / Tableau to:
 - `data/warehouse/olist.duckdb`, or
 - exported mart files under `data/exports/`.
+
+6. Run online website dashboard (Streamlit):
+
+```bash
+python3 -m pip install -r requirements.txt
+streamlit run web_dashboard/app.py
+```
+
+7. Deploy online:
+- See `web_dashboard/README.md` for Streamlit Community Cloud steps.
 
 ## Cloud Agent Environment
 

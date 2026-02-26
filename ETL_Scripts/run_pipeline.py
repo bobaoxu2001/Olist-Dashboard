@@ -44,6 +44,9 @@ EXPORT_OBJECTS = [
     "mart.vw_ops_monthly_logistics",
     "mart.vw_csat_delay_impact",
     "mart.vw_csat_state_payment_driver",
+    "mart.vw_review_distribution",
+    "mart.vw_state_geo_centroid",
+    "mart.vw_csat_kpis",
     "mart.data_quality_checks",
 ]
 

@@ -132,3 +132,31 @@ GROUP BY
     COALESCE(customer_state, 'UNKNOWN'),
     COALESCE(main_payment_type, 'unknown')
 ORDER BY order_count DESC;
+
+CREATE OR REPLACE VIEW mart.vw_review_distribution AS
+SELECT
+    review_score,
+    COUNT(*) AS review_count
+FROM mart.fact_orders
+WHERE review_score IS NOT NULL
+GROUP BY review_score
+ORDER BY review_score;
+
+CREATE OR REPLACE VIEW mart.vw_state_geo_centroid AS
+SELECT
+    customer_state,
+    AVG(geo_lat) AS geo_lat,
+    AVG(geo_lng) AS geo_lng
+FROM mart.dim_customer
+WHERE customer_state IS NOT NULL
+  AND geo_lat IS NOT NULL
+  AND geo_lng IS NOT NULL
+GROUP BY customer_state;
+
+CREATE OR REPLACE VIEW mart.vw_csat_kpis AS
+SELECT
+    AVG(review_score) AS avg_review_score,
+    AVG(CASE WHEN review_score = 1 THEN 1.0 ELSE 0.0 END) AS one_star_rate,
+    AVG(CASE WHEN review_score <= 2 THEN 1.0 ELSE 0.0 END) AS low_score_rate
+FROM mart.fact_orders
+WHERE review_score IS NOT NULL;

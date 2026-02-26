@@ -102,6 +102,13 @@ flowchart LR
 │   ├── app.py
 │   ├── README.md
 │   └── requirements.txt
+├── web_dashboard_static/
+│   ├── index.html
+│   ├── app.js
+│   ├── styles.css
+│   ├── generate_data.py
+│   ├── data/dashboard_data.json
+│   └── README.md
 ├── docs/
 │   ├── interview_talk_track.md
 │   └── scale_up_plan.md
@@ -151,6 +158,22 @@ python3 -m streamlit run web_dashboard/app.py
 7. Deploy online:
 - See `web_dashboard/README.md` for Streamlit Community Cloud steps.
 - You can also use root entrypoint `streamlit_app.py` for faster auto-detection.
+
+## Streamlit Access Blocked? Use Static CDN Dashboard
+
+If your network shows `source IP address not allowed` for Streamlit Cloud, use the static public dashboard:
+
+```text
+https://cdn.jsdelivr.net/gh/bobaoxu2001/Olist-Dashboard@main/web_dashboard_static/index.html
+```
+
+To refresh with latest warehouse metrics:
+
+```bash
+python3 web_dashboard_static/generate_data.py \
+  --db-path data/warehouse/olist.duckdb \
+  --output-path web_dashboard_static/data/dashboard_data.json
+```
 
 ## Cloud Agent Environment
 

@@ -150,6 +150,7 @@ python3 -m streamlit run web_dashboard/app.py
 
 7. Deploy online:
 - See `web_dashboard/README.md` for Streamlit Community Cloud steps.
+- You can also use root entrypoint `streamlit_app.py` for faster auto-detection.
 
 ## Cloud Agent Environment
 

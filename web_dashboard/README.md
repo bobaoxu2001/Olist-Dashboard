@@ -28,7 +28,7 @@ python3 -m streamlit run web_dashboard/app.py
 3. Select:
    - Repository: `bobaoxu2001/Olist-Dashboard`
    - Branch: `main`
-   - Main file path: `web_dashboard/app.py`
+   - Main file path: `streamlit_app.py` (or `web_dashboard/app.py`)
 4. Deploy.
 
 ### Data for deployment
